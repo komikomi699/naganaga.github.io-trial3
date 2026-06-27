@@ -170,7 +170,7 @@
 <div class="calendar-container">
     <div class="inner-border">
         <div class="header-title">理髪　ながしま</div>
-        <div class="header-time">営業時間 9:00 〜 18:00</div>
+        <div class="header-time">営業時間 9:00 〜 19:00</div>
         <div class="months-grid" id="yearly-calendars"></div>
     </div>
 </div>
@@ -298,10 +298,10 @@
                     statusBar.className = "status-fixed-bar status-closed";
                 } else {
                     // ② 営業日の場合（さらに時間帯で分ける：9時〜18時）
-                    if (currentHour >= 9 && currentHour < 18) {
-                        statusBar.innerText = "只いま営業してます！ (18:00まで)";
+                    if (currentHour >= 9 && currentHour < 19) {
+                        statusBar.innerText = "ただいま営業してます！ (19:00まで)";
                         statusBar.className = "status-fixed-bar status-open";
-                    } else if (currentHour >= 18) {
+                    } else if (currentHour >= 19) {
                         statusBar.innerText = "本日の営業は終了いたしました";
                         statusBar.className = "status-fixed-bar status-over";
                     } else {
