@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>年間カレンダー（理髪 ながしま）</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 80px; /* 下部固定バーのための余白 */
+            display: flex;
+            justify-content: center;
+        }
+
+        .calendar-container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: #fcf9f2; /* クラシックな薄いベージュ */
+            border-left: 1px solid #d0c5b4;
+            border-right: 1px solid #d0c5b4;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            min-height: 100vh;
+        }
+
+        .inner-border {
+            border: 4px double #d0c5b4; /* 上品な二重線 */
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100%;
+        }
+
+        .header-title {
+            font-size: 26px;
+            font-weight: bold;
+            color: #3a3f44;
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            letter-spacing: 4px;
+        }
+
+        .header-time {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .months-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+        }
+
+        .month-box {
+            background-color: #fcf9f2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .month-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4a7c59; /* 落ち着いたアースグリーン */
+            border-bottom: 2px solid #d0c5b4;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-table {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+
+        .weekday {
+            font-size: 12px;
+            font-weight: bold;
+            color: #8a857c;
+            padding: 4px 0;
+        }
+
+        .day {
+            font-size: 14px;
+            line-height: 30px;
+            height: 30px;
+            color: #333333;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .day.empty {
+            background: transparent !important;
+        }
+
+        /* 日曜日・祝日（薄い赤） */
+        .col-sun {
+            background-color: rgba(231, 76, 60, 0.08); 
+            color: #c0392b;
+            border-radius: 4px;
+        }
+
+        /* 土曜日（薄い青） */
+        .col-sat {
+            background-color: rgba(52, 152, 219, 0.08);
+            color: #2980b9;
+            border-radius: 4px;
+        }
+
+        /* お休みの赤枠スタイル */
+        .day.off-style {
+            background-color: rgba(192, 57, 43, 0.16) !important;
+            color: #c0392b !important;
+            font-weight: bold;
+            box-shadow: inset 0 0 0 1.5px #c0392b;
+        }
+
+        /* 本日のスタイル（ゴールド） */
+        .day.today-style {
+            background-color: #f1c40f !important; 
+            color: #2c3e50 !important;          
+            font-weight: bold !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+
+        /* 画面下部に固定されるステータスバー */
+        .status-fixed-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 16px 10px;
+            box-sizing: border-box;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 -3px 10px rgba(0,0,0,0.15);
+            z-index: 9999;
+            letter-spacing: 1px;
+        }
+
+        /* ① 営業時間内（グリーン） */
+        .status-open {
+            background-color: #27ae60;
+            color: #ffffff;
+        }
+
+        /* ② 定休日（レッド） */
+        .status-closed {
+            background-color: #c0392b;
+            color: #ffffff;
+        }
+
+        /* ③ 営業時間外・終了後（グレー） */
+        .status-over {
+            background-color: #7f8c8d;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calendar-container">
+    <div class="inner-border">
+        <div class="header-title">理髪　ながしま</div>
+        <div class="header-time">営業時間 9:00 〜 18:00</div>
+        <div class="months-grid" id="yearly-calendars"></div>
+    </div>
+</div>
+
+<!-- 画面の下に常に残るステータスバー -->
+<div id="status-bar" class="status-fixed-bar">
+    確認中...
+</div>
+
+<script>
+    const weekdaysLabels = ['日', '月', '火', '水', '木', '金', '土'];
+
+    // 今日の日付・時刻情報を取得
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const currentDate = today.getDate();
+    const currentHour = today.getHours(); // 現在の「時」
+
+    // 祝日データ
+    const holidays = {
+        2026: { 7: [20], 8: [11, 12], 9: [21, 22, 23], 10: [12], 11: [3, 23], 12: [] },
+        2027: { 1: [1, 11], 2: [11, 23], 3: [21, 22], 4: [29], 5: [3, 4, 5] }
+    };
+
+    // お休みデータ
+    const specialOffDays = {
+        2026: { 8: [14, 15, 16, 17], 12: [31] },
+        2027: { 1: [1, 2, 3, 4, 11, 12, 18, 19, 25] }
+    };
+
+    // 特別営業日
+    const forcedOpenDays = {
+        2026: { 8: [18] },
+        2027: { 1: [5] }
+    };
+
+    function getDaysInMonth(year, month) {
+        return new Date(year, month + 1, 0).getDate();
+    }
+
+    function checkIsOff(year, monthNum, day, dayOfWeek, targetTue1, targetTue3) {
+        const isForcedOpen = forcedOpenDays[year] && forcedOpenDays[year][monthNum] && forcedOpenDays[year][monthNum].includes(day);
+        const isSpecialOff = specialOffDays[year] && specialOffDays[year][monthNum] && specialOffDays[year][monthNum].includes(day);
+
+        if (isForcedOpen) return false;
+        if (isSpecialOff) return true;
+        if (dayOfWeek === 1) return true;
+        if (dayOfWeek === 2) {
+            if (day === targetTue1 || day === targetTue3) return true;
+        }
+        return false;
+    }
+
+    function generateMonthData(year, month) {
+        const monthNum = month + 1;
+        const monthBox = document.createElement('div');
+        monthBox.className = 'month-box';
+
+        const title = document.createElement('div');
+        title.className = 'month-title';
+        title.innerText = `${year}年 ${monthNum}月`;
+        monthBox.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'calendar-table';
+
+        weekdaysLabels.forEach((w, index) => {
+            const wDiv = document.createElement('div');
+            wDiv.className = 'weekday';
+            wDiv.innerText = w;
+            if (index === 0) wDiv.classList.add('col-sun');
+            if (index === 6) wDiv.classList.add('col-sat');
+            grid.appendChild(wDiv);
+        });
+
+        const firstDayIndex = new Date(year, month, 1).getDay();
+        const totalDays = getDaysInMonth(year, month);
+
+        for (let i = 0; i < firstDayIndex; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'day empty';
+            grid.appendChild(emptyDiv);
+        }
+
+        let firstMondayDate = null, thirdMondayDate = null, monCount = 0;
+        for (let d = 1; d <= totalDays; d++) {
+            if (new Date(year, month, d).getDay() === 1) {
+                monCount++;
+                if (monCount === 1) firstMondayDate = d;
+                if (monCount === 3) thirdMondayDate = d;
+            }
+        }
+        const targetTue1 = firstMondayDate ? firstMondayDate + 1 : null;
+        const targetTue3 = thirdMondayDate ? thirdMondayDate + 1 : null;
+
+        for (let day = 1; day <= totalDays; day++) {
+            const dayOfWeek = new Date(year, month, day).getDay();
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day';
+            dayDiv.innerText = day;
+
+            const isHoliday = holidays[year] && holidays[year][monthNum] && holidays[year][monthNum].includes(day);
+
+            if (dayOfWeek === 0 || isHoliday) {
+                dayDiv.classList.add('col-sun');
+            } else if (dayOfWeek === 6) {
+                dayDiv.classList.add('col-sat');
+            }
+
+            const isOff = checkIsOff(year, monthNum, day, dayOfWeek, targetTue1, targetTue3);
+            if (isOff) {
+                dayDiv.classList.add('off-style');
+            }
+
+            // 今日（本日）の判定と、時間帯に合わせたステータスバーの制御
+            if (year === currentYear && month === currentMonth && day === currentDate) {
+                dayDiv.classList.add('today-style');
+                
+                const statusBar = document.getElementById('status-bar');
+                
+                if (isOff) {
+                    // ① 定休日の場合
+                    statusBar.innerText = "本日はお休みをいただいております";
+                    statusBar.className = "status-fixed-bar status-closed";
+                } else {
+                    // ② 営業日の場合（さらに時間帯で分ける：9時〜18時）
+                    if (currentHour >= 9 && currentHour < 18) {
+                        statusBar.innerText = "只いま営業してます！ (18:00まで)";
+                        statusBar.className = "status-fixed-bar status-open";
+                    } else if (currentHour >= 18) {
+                        statusBar.innerText = "本日の営業は終了いたしました";
+                        statusBar.className = "status-fixed-bar status-over";
+                    } else {
+                        statusBar.innerText = "本日は9:00より営業いたします";
+                        statusBar.className = "status-fixed-bar status-over";
+                    }
+                }
+            }
+
+            grid.appendChild(dayDiv);
+        }
+
+        monthBox.appendChild(grid);
+        return monthBox;
+    }
+
+    function init() {
+        const container = document.getElementById('yearly-calendars');
+        let startYear = 2026;
+        let startMonth = 5;
+
+        for (let i = 0; i < 12; i++) {
+            if (startYear > currentYear || (startYear === currentYear && startMonth >= currentMonth)) {
+                container.appendChild(generateMonthData(startYear, startMonth));
+            }
+            startMonth++;
+            if (startMonth > 11) {
+                startMonth = 0;
+                startYear++;
+            }
+        }
+    }
+    window.onload = init;
+</script>
+</body>
+</html>
