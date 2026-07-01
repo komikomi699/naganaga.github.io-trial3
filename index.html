@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>年間カレンダー（理髪 ながしま）</title>
+    <title>年間カレンダー（理容 ながしま）</title>
     <style>
         body {
             font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
@@ -12,13 +12,42 @@
             padding: 0;
             padding-bottom: 80px; /* 下部固定バーのための余白 */
             display: flex;
-            justify-content: center;
+            flex-direction: column;
+            align-items: center;
         }
 
+        /* 印刷ボタン用のスタイル */
+        .print-btn-container {
+            width: 100%;
+            max-width: 1200px;
+            box-sizing: border-box;
+            padding: 15px 20px 0 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .print-button {
+            background-color: #4a7c59;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: background 0.2s;
+        }
+
+        .print-button:hover {
+            background-color: #3b6347;
+        }
+
+        /* 通常画面表示用のコンテナ */
         .calendar-container {
             width: 100%;
             max-width: 1200px;
-            background-color: #fcf9f2; /* クラシックな薄いベージュ */
+            background-color: #fcf9f2;
             border-left: 1px solid #d0c5b4;
             border-right: 1px solid #d0c5b4;
             padding: 20px;
@@ -28,7 +57,7 @@
         }
 
         .inner-border {
-            border: 4px double #d0c5b4; /* 上品な二重線 */
+            border: 4px double #d0c5b4;
             padding: 20px;
             box-sizing: border-box;
             height: 100%;
@@ -44,12 +73,28 @@
             letter-spacing: 4px;
         }
 
-        .header-time {
+        .header-info {
             font-size: 14px;
             color: #7f8c8d;
             text-align: center;
             margin-bottom: 25px;
             font-weight: bold;
+            line-height: 1.6;
+        }
+
+        .tel-highlight {
+            font-size: 22px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .header-info a {
+            color: #c0392b;
+            text-decoration: none;
+        }
+
+        .header-info a:hover {
+            text-decoration: underline;
         }
 
         .months-grid {
@@ -67,7 +112,7 @@
         .month-title {
             font-size: 18px;
             font-weight: bold;
-            color: #4a7c59; /* 落ち着いたアースグリーン */
+            color: #4a7c59;
             border-bottom: 2px solid #d0c5b4;
             padding-bottom: 5px;
             margin-bottom: 10px;
@@ -89,32 +134,25 @@
 
         .day {
             font-size: 14px;
-            line-height: 30px;
-            height: 30px;
+            line-height: 24px;
+            height: 35px;
             color: #333333;
             border-radius: 4px;
             font-weight: 500;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
         }
 
         .day.empty {
             background: transparent !important;
         }
 
-        /* 日曜日・祝日（薄い赤） */
-        .col-sun {
-            background-color: rgba(231, 76, 60, 0.08); 
-            color: #c0392b;
-            border-radius: 4px;
-        }
+        .col-sun { background-color: rgba(231, 76, 60, 0.08); color: #c0392b; border-radius: 4px; }
+        .col-sat { background-color: rgba(52, 152, 219, 0.08); color: #2980b9; border-radius: 4px; }
 
-        /* 土曜日（薄い青） */
-        .col-sat {
-            background-color: rgba(52, 152, 219, 0.08);
-            color: #2980b9;
-            border-radius: 4px;
-        }
-
-        /* お休みの赤枠スタイル */
         .day.off-style {
             background-color: rgba(192, 57, 43, 0.16) !important;
             color: #c0392b !important;
@@ -122,7 +160,6 @@
             box-shadow: inset 0 0 0 1.5px #c0392b;
         }
 
-        /* 本日のスタイル（ゴールド） */
         .day.today-style {
             background-color: #f1c40f !important; 
             color: #2c3e50 !important;          
@@ -130,7 +167,18 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
         }
 
-        /* 画面下部に固定されるステータスバー */
+        /* 通常画面用の祝日の緑の丸点 */
+        .day.holiday-dot::after {
+            content: "";
+            display: block;
+            width: 5px;
+            height: 5px;
+            background-color: #27ae60;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 3px;
+        }
+
         .status-fixed-bar {
             position: fixed;
             bottom: 0;
@@ -146,36 +194,215 @@
             letter-spacing: 1px;
         }
 
-        /* ① 営業時間内（グリーン） */
-        .status-open {
-            background-color: #27ae60;
-            color: #ffffff;
+        .status-open { background-color: #27ae60; color: #ffffff; }
+        .status-closed { background-color: #c0392b; color: #ffffff; }
+        .status-over { background-color: #7f8c8d; color: #ffffff; }
+
+        /* 印刷用パーツ（通常画面では非表示） */
+        .print-card {
+            display: none;
         }
 
-        /* ② 定休日（レッド） */
-        .status-closed {
-            background-color: #c0392b;
-            color: #ffffff;
-        }
+        /* ==========================================
+           名刺サイズ縦向き印刷用の設定 (@media print)
+        ========================================== */
+        @media print {
+            .calendar-container, .print-btn-container, #status-bar {
+                display: none !important;
+            }
 
-        /* ③ 営業時間外・終了後（グレー） */
-        .status-over {
-            background-color: #7f8c8d;
-            color: #ffffff;
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body {
+                background-color: #ffffff;
+                padding: 0;
+                margin: 0;
+            }
+
+            /* 名刺サイズ（縦向き 55mm × 91mm） */
+            .print-card {
+                display: block !important;
+                width: 55mm;
+                height: 91mm;
+                max-width: 55mm;
+                max-height: 91mm;
+                min-height: 91mm;
+                padding: 3mm; 
+                box-sizing: border-box;
+                background-color: #fcf9f2 !important;
+                border: 1px solid #d0c5b4;
+                position: relative;
+                overflow: hidden;
+                break-after: page;
+            }
+
+            .print-card:last-child {
+                break-after: auto;
+            }
+
+            .print-inner {
+                border: 1.5px double #d0c5b4 !important;
+                padding: 2mm 1.5mm; 
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between; 
+                box-sizing: border-box;
+            }
+
+            /* 2枚目（カレンダーのみ）用のレイアウト微調整 */
+            #print-card-2 .print-inner {
+                justify-content: space-around; 
+                padding: 1.5mm 1.5mm;
+            }
+
+            .print-header {
+                text-align: center;
+                margin-bottom: 0;
+            }
+
+            .header-title {
+                font-size: 12px; 
+                margin-top: 0;
+                margin-bottom: 1.5px;
+                letter-spacing: 0.5px;
+                font-weight: bold;
+            }
+
+            .header-info {
+                font-size: 6.5px;
+                margin-bottom: 0px;
+                line-height: 1.3;
+            }
+
+            .tel-highlight {
+                font-size: 8px;
+                margin-top: 1px;
+                font-weight: bold;
+            }
+
+            .month-box {
+                display: flex !important;
+                flex-direction: column !important;
+                background-color: #fcf9f2 !important;
+                justify-content: center;
+            }
+
+            #print-card-2 .month-title {
+                font-size: 7px;
+                margin-bottom: 1px;
+            }
+            #print-card-2 .weekday {
+                font-size: 5px;
+            }
+            #print-card-2 .day {
+                font-size: 6px;
+                line-height: 7.5px;
+                height: 9.5px;
+            }
+
+            .month-title {
+                font-size: 7.5px;
+                margin-bottom: 1.5px;
+                padding-bottom: 0.5px;
+                color: #4a7c59 !important;
+                border-bottom: 1px solid #d0c5b4 !important;
+            }
+
+            .calendar-table {
+                display: grid !important;
+                grid-template-columns: repeat(7, 1fr) !important;
+                gap: 0.8px !important; 
+            }
+
+            .weekday {
+                font-size: 5.5px;
+                padding: 0.5px 0;
+                color: #8a857c !important;
+            }
+
+            .day {
+                font-size: 6.5px;
+                line-height: 7.5px;
+                height: 10.5px;
+                color: #333333 !important;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                position: relative;
+            }
+
+            .day.empty {
+                background: transparent !important;
+            }
+
+            .day.off-style {
+                background-color: rgba(192, 57, 43, 0.16) !important;
+                color: #c0392b !important;
+                font-weight: bold !important;
+                box-shadow: inset 0 0 0 0.5px #c0392b !important;
+            }
+
+            .day.today-style {
+                background-color: transparent !important;
+                box-shadow: none !important;
+                color: #333333 !important;
+            }
+            .day.today-style.col-sun { color: #c0392b !important; }
+            .day.today-style.col-sat { color: #2980b9 !important; }
+
+            /* 印刷サイズ用の祝日の緑の丸点 */
+            .day.holiday-dot::after {
+                content: "";
+                display: block;
+                width: 1.5px;
+                height: 1.5px;
+                background-color: #27ae60 !important;
+                border-radius: 50%;
+                position: absolute;
+                bottom: 1px;
+            }
         }
     </style>
 </head>
 <body>
 
+<div class="print-btn-container">
+    <button class="print-button" onclick="window.print()">名刺サイズで印刷</button>
+</div>
+
 <div class="calendar-container">
     <div class="inner-border">
-        <div class="header-title">理髪　ながしま</div>
-        <div class="header-time">営業時間 9:00 〜 19:00</div>
+        <div class="header-title">理容 ながしま</div>
+        <div class="header-info">
+            <div>営業時間 9:00 〜 19:00</div>
+            <div>TEL: <a href="tel:07085163828" class="tel-highlight">070-8516-3828</a></div>
+        </div>
         <div class="months-grid" id="yearly-calendars"></div>
     </div>
 </div>
 
-<!-- 画面の下に常に残るステータスバー -->
+<div class="print-card" id="print-card-1">
+    <div class="print-inner">
+        <div class="print-header">
+            <div class="header-title">理容 ながしま</div>
+            <div class="header-info">
+                <div>営業時間 9:00 〜 19:00</div>
+                <div>TEL: <span class="tel-highlight">070-8516-3828</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="print-card" id="print-card-2">
+    <div class="print-inner">
+        </div>
+</div>
+
 <div id="status-bar" class="status-fixed-bar">
     確認中...
 </div>
@@ -183,28 +410,27 @@
 <script>
     const weekdaysLabels = ['日', '月', '火', '水', '木', '金', '土'];
 
-    // 今日の日付・時刻情報を取得
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth();
     const currentDate = today.getDate();
-    const currentHour = today.getHours(); // 現在の「時」
+    const currentHour = today.getHours();
 
-    // 祝日データ
+    // 定休日・祝日データ（★8月12日は祝日ではないので削除して[11]のみにしました）
     const holidays = {
-        2026: { 7: [20], 8: [11, 12], 9: [21, 22, 23], 10: [12], 11: [3, 23], 12: [] },
-        2027: { 1: [1, 11], 2: [11, 23], 3: [21, 22], 4: [29], 5: [3, 4, 5] }
+        2026: { 7: [20], 8: [11], 9: [21, 22, 23], 10: [12], 11: [3, 23], 12: [] },
+        2027: { 1: [1, 11], 2: [11, 23], 3: [21, 22], 4: [29], 5: [3, 4, 5], 6: [], 7: [], 8: [] }
     };
 
-    // お休みデータ
+    // 特別休暇データ（★12日をここから除外しました）
     const specialOffDays = {
         2026: { 8: [14, 15, 16, 17], 12: [31] },
         2027: { 1: [1, 2, 3, 4, 11, 12, 18, 19, 25] }
     };
 
-    // 特別営業日
+    // 強制営業日データ（★8月12日は特別に稼働する日なので、[18]に加えて[12]を追加しました）
     const forcedOpenDays = {
-        2026: { 8: [18] },
+        2026: { 8: [12, 18] },
         2027: { 1: [5] }
     };
 
@@ -216,7 +442,7 @@
         const isForcedOpen = forcedOpenDays[year] && forcedOpenDays[year][monthNum] && forcedOpenDays[year][monthNum].includes(day);
         const isSpecialOff = specialOffDays[year] && specialOffDays[year][monthNum] && specialOffDays[year][monthNum].includes(day);
 
-        if (isForcedOpen) return false;
+        if (isForcedOpen) return false; // 強制営業日の場合は最優先で営業(false)にする
         if (isSpecialOff) return true;
         if (dayOfWeek === 1) return true;
         if (dayOfWeek === 2) {
@@ -225,7 +451,7 @@
         return false;
     }
 
-    function generateMonthData(year, month) {
+    function createMonthElement(year, month, isPrintMode = false) {
         const monthNum = month + 1;
         const monthBox = document.createElement('div');
         monthBox.className = 'month-box';
@@ -281,23 +507,23 @@
                 dayDiv.classList.add('col-sat');
             }
 
+            // 祝日の場合に丸点をつける
+            if (isHoliday) {
+                dayDiv.classList.add('holiday-dot');
+            }
+
             const isOff = checkIsOff(year, monthNum, day, dayOfWeek, targetTue1, targetTue3);
             if (isOff) {
                 dayDiv.classList.add('off-style');
             }
 
-            // 今日（本日）の判定と、時間帯に合わせたステータスバーの制御
-            if (year === currentYear && month === currentMonth && day === currentDate) {
+            if (!isPrintMode && year === currentYear && month === currentMonth && day === currentDate) {
                 dayDiv.classList.add('today-style');
-                
                 const statusBar = document.getElementById('status-bar');
-                
                 if (isOff) {
-                    // ① 定休日の場合
                     statusBar.innerText = "本日はお休みをいただいております";
                     statusBar.className = "status-fixed-bar status-closed";
                 } else {
-                    // ② 営業日の場合（さらに時間帯で分ける：9時〜18時）
                     if (currentHour >= 9 && currentHour < 19) {
                         statusBar.innerText = "ただいま営業してます！ (19:00まで)";
                         statusBar.className = "status-fixed-bar status-open";
@@ -319,14 +545,23 @@
     }
 
     function init() {
-        const container = document.getElementById('yearly-calendars');
-        let startYear = 2026;
-        let startMonth = 5;
+        const mainContainer = document.getElementById('yearly-calendars');
+        const printCard1Inner = document.querySelector('#print-card-1 .print-inner');
+        const printCard2Inner = document.querySelector('#print-card-2 .print-inner');
+
+        let startYear = currentYear;
+        let startMonth = currentMonth;
 
         for (let i = 0; i < 12; i++) {
-            if (startYear > currentYear || (startYear === currentYear && startMonth >= currentMonth)) {
-                container.appendChild(generateMonthData(startYear, startMonth));
+            mainContainer.appendChild(createMonthElement(startYear, startMonth, false));
+
+            if (i >= 0 && i < 3) {
+                printCard1Inner.appendChild(createMonthElement(startYear, startMonth, true));
             }
+            else if (i >= 3 && i < 7) {
+                printCard2Inner.appendChild(createMonthElement(startYear, startMonth, true));
+            }
+
             startMonth++;
             if (startMonth > 11) {
                 startMonth = 0;
